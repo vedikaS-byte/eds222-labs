@@ -3,3 +3,186 @@ title: "lab5_Mathematical_inference_in_R"
 format: html
 ---
 
+## Learning objectives
+
+In today’s lab you will…
+
+1.  Use mathematical models to test hypotheses
+2.  Use mathematical models to construct confidence intervals
+3.  Compare mathematical and randomization approaches to inference
+
+```{r}
+#| output: false
+library(tidyverse)
+theme_set(theme_classic(14))
+set.seed(123)
+```
+
+## Mathematical models
+
+This lab will repeat the inferences you conducted in last week’s lab, using mathematical models instead of randomization. Let’s recall our data from last week. You’ll need to copy the data file to your week5/data directory.
+
+```{r}
+restoration <- read_csv("data_copy/eelgrass (1).csv",
+                        show_col_types = FALSE)
+ggplot(restoration, aes(treatment, fill = success_fct)) +
+  geom_bar() +
+  scale_fill_manual(values = c("firebrick", "cornflowerblue")) +
+  labs(x = "Restoration method",
+       y = "Sites",
+       fill = "Outcome") +
+  theme(legend.position = "inside",
+        legend.position.inside = c(1, 1),
+        legend.justification = c(1, 1))
+```
+
+Once again, we want to know if the popsicle stick method works better for restoration than garden staples. This is a “yes/no?” question, so we’re conducting a hypothesis test. Instead of using permutation to estimate our sampling distribution, we will assume the sampling distribution is normally distributed. Under the null hypothesis (i.e., no difference in proportions), we make this assumption:
+
+This is how you would have tested your hypothesis using permutation:
+
+![](images/clipboard-240816349.png)
+
+Identify the STATISTIC State your NULL and ALTERNATIVE hypotheses Calculate the OBSERVED statistic Estimate the NULL DISTRIBUTION Calculate P-VALUE Compare p-value to CRITICAL THRESHOLD.
+
+1.  **Identify the STATISTIC**
+
+2.  **State your NULL and ALTERNATIVE hypotheses**
+
+3.  **Calculate the OBSERVED statistic**
+
+4.  **Estimate the NULL DISTRIBUTION**
+
+5.  **Calculate P-VALUE**
+
+6.  **Compare p-value to CRITICAL THRESHOLD**
+
+Using a mathematical model, you modify step 4. Instead of using randomization to estimate the null distribution, you use a normal variable. The following questions walk you through the steps. Note: many of these steps are *exactly the same* as last week’s lab.
+
+#### **Identify the statistic**
+
+**Q1: What is the appropriate statistic for this question?**
+
+Difference in proportions
+
+#### **State your null and alternative hypotheses**
+
+**Q2: What are your null and alternative hypotheses?**
+
+H0: There is no significance difference in the proportions between the two treatments.
+
+HA: There is a significant difference in the proportion of success between the two treatments.
+
+#### **Calculate the sample statistic**
+
+**Q3: How would you calculate the statistic *for the sample*?**
+
+Call the variable `diff_props`.
+
+```{r}
+success_props <- restoration %>% 
+  group_by(treatment) %>% 
+  summarize(prop_success = mean(success))
+
+success_props
+
+diff_props <- success_props[2,2] - success_props[1,2]
+
+diff_props
+diff_props <- 0.1416667
+str(restoration)
+
+```
+
+#### **Estimate the null distribution**
+
+#### **Q4: What’s the standard error of the sample’s statistic?**
+
+```{r}
+# p_hat is the POOLED proportion, i.e. the overall proportion of success
+p_hat <- sum(restoration$success) / nrow(restoration)
+
+# n's are the number of observations in each treatment
+# n1: number of garden staple observations
+# n2: number of popsicle stick observations
+n1 <- sum(restoration$treatment == "Garden staple")
+n2 <- sum(restoration$treatment == "Popsicle stick")
+
+se_p_hat <- sqrt(p_hat * (1 - p_hat) * (1 / n1 + 1 / n2))
+```
+
+If you calculated `se_p_hat` correctly, the following figure should depict the PDF of the null distribution. It should be a normal variable with mean equal to 0 and standard deviation equal to the standard error of
+
+```{r}
+null_dist <- tibble(
+  diff_prop = seq(-0.4, 0.4, length.out = 1000),
+  density = dnorm(diff_prop, mean = 0, sd = se_p_hat)
+)
+ 
+ggplot(null_dist, aes(diff_prop, density)) +
+  geom_line(color = "cornflowerblue", linewidth = 2) +
+  geom_vline(xintercept = diff_props, color = "firebrick", linewidth = 2)
+
+```
+
+#### **Calculate the p-value**
+
+Use the `pnorm()` function to get the area under the curve of a normal distribution.
+
+```{r}
+p_val <- pnorm(diff_props, mean = 0, sd = se_p_hat, lower.tail = F)
+p_val
+```
+
+**Q6: How does your p-value compare to a critical threshold**
+
+The p-value is greater than the critical threshold of .05. As a result, we fail to reject the null hypothesis and do not have sufficient data to suggest that the popsicle stick method is more successful than the garden staple method.
+
+### **Confidence interval**
+
+Now we want to estimate how differently the popsicle stick and garden staple methods perform. This is a *“how much?”* question, so we’re constructing a confidence interval. Instead of using bootstrapping to estimate our sampling distribution, we will assume the sampling distribution is normally distributed. We make this assumption:
+
+![](images/clipboard-4153618857.png)
+
+This is how you would have built a confidence interval using bootstrapping:
+
+1.  Identify the STATISTIC
+
+2.  Substitute sample for population and draw BOOTSTRAP SAMPLES
+
+3.  Estimate the BOOTSTRAP DISTRIBUTION of the statistic
+
+4.  Construct the CONFIDENCE INTERVAL
+
+Using a mathematical model changes how steps 2 and 3 work, with the same goal of estimating the sampling distribution. Instead of using randomization to draw bootstrap samples, you use a normal variable. The procedure works like this:
+
+1.  Identify the STATISTIC
+
+2.  Calculate the STANDARD ERROR of the statistic
+
+3.  Construct the CONFIDENCE INTERVAL using a normal variable
+
+The following questions walk you through the steps.
+
+#### **Identify the statistic**
+
+**Q7: What is the appropriate test statistic for this question?**
+
+#### **Calculate the standard error**
+
+**Q8: Fill in the blanks below to calculate the standard error of the statistic**
+
+```{r}
+# Calculate the proportions of the two treatments
+# Let treatment 1 be "Garden staple"
+p_hat1 <- ???
+# Let treatment 2 be "Popsicle stick"
+p_hat2 <- ???
+
+# n1 and n2 remain the same from before
+
+# Calculate standard error
+se_diff_props <- ???
+se_diff_props
+```
+
+If you calculated `se_diff_props` correctly, the following figure should depict the PDF of the sampling distribution. It should be a normal variable with mean equal to the observed statistic in the sample and standard deviation equal to the standard error.
