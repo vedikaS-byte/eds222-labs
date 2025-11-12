@@ -234,6 +234,8 @@ ggplot(class_model_predictions, aes(x = pctpov, y = p)) +
 And here’s the fit with the 95% CI presented as the familiar ribbon.
 
 ```{r}
+# linkspace for meaningful math 
+# inverse is for interpretation
 ## se.fit:logit(p) is linear with x predictor, apply inverse (logit^-1) to get p as y value (curve) against predictor
 
 
@@ -241,4 +243,75 @@ And here’s the fit with the 95% CI presented as the familiar ribbon.
 
 ```
 
-**What is the probability of a SDWA violation in a district where 5% of households are below the poverty line? When 50% are? Show the best estimate and 95% CI.**
+## Your turn 
+
+Switzer and Teodoro demonstrated that the *interaction* between race and class is important for understanding the environmental justice dimensions of drinking water. You’ll investigate that here through the following steps.
+
+1.  Create a new model with an interaction term between `pctpov` and `pcthisp`.
+
+    ```{r}
+    pov_pcthisp_model <- glm(violation~pctpov*pcthisp, 
+                             data =drinking_water, 
+                             binomial(link = "logit"))
+
+
+    summary(pov_pcthisp_model)
+
+    ```
+
+2.  Use the summary and confidence intervals to answer the following questions:\
+    **What is the 95% CI for the % Hispanic coefficient?**
+
+    The 95% confidence interval for the % Hispanic coefficient falls between -0.009 and -0.002.
+
+    \
+    3. **Is the interaction between class and race significantly different than 0?**
+
+    The interaction term is statistically significant.
+
+```{r}
+confint(pov_pcthisp_model)
+```
+
+1.  Create a new predictor data frame with combinations of *both* predictors.
+
+```{r}
+# Create new predictor data set 
+predictions <- expand_grid(pctpov = 0:50, pcthisp = 0:100)
+predictions
+```
+
+1.  Generate predictions, including both the best estimate and 95% CI.
+
+    ```{r}
+    # Make predictions with p 
+    # need to undo logit p
+
+    # Get the SE for logit 
+    predictions_se <- predict(object = pov_pcthisp_model, newdata = predictions, type = "link",
+                              se.fit = T)
+
+    # Go from link space to response space
+    linkinv <- family(pov_pcthisp_model)$linkinv
+
+    # Create columns to predictions interaction to get the inverse ("p")
+    class_predictions_interactions <- predictions %>% 
+      mutate(
+        # Get logit link
+        logit_p = predictions_se$fit, 
+        logit_p_se = predictions$se.fit, 
+        logit_p_lwr = qnorm(.025, mean = logit_p, sd = logit_p_se), 
+             logit_p_upper = qnorm(.025, mean = logit_p, sd = logit_p_se),
+        # Undo logit link with inverse 
+        p = linkinv(logit_p), 
+        lower_p = linkinv(logit_p_lwr), 
+        upper_p = linkiv(logit_p_upper)
+        )
+
+    ```
+
+2.  Plot the predictions. In your plot, put `pcthisp` on the x-axis and probability of SDWA violations on the y-axis. Indicate `pctpov` using color and fill. To make this work, you’ll have to filter your predictions to a few levels of `pctpov` (e.g., 0, 25, 50, and 75).
+
+The coefficient for an interaction term in a logistic regression model is very difficult to interpret on its own! But that value has important consequences for the lives of millions of people. Predictions are usually more straightforward to interpret than coefficients. Use your figure and the outputs of `summary()` and `confint()` to reflect on the following prompt. Reply to the corresponding thread on Slack with your reflection to get 1 token.
+
+**In plain language, what is the relationship between race, class, and SDWA violations? Which communities face the greatest risks associated with drinking water? How would you use the statistical outputs (model summary, prediction figure) to describe that risk quantitatively? How could those statistical outputs be misinterpreted?**
