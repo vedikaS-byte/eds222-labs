@@ -130,8 +130,9 @@ class_model <- glm(violation~pctpov, # formula: response ~ predictors
                    data = drinking_water, 
                    family = binomial(link = "logit")) # Set family response
 
-summary(class_model)
-confint(class_model)
+summary(class_model)$coefficients["pctpov",4]
+confint(class_model)["pctpov",]
+
 ```
 
 Just as we did with linear regression, you can inspect coefficient estimates, p-values, and confidence intervals using `summary()` and `confint()`.
@@ -150,7 +151,7 @@ We are 95% confident that that the true population coefficient of percent povert
 
 **Based on the sign, what is the relationship between class and SDWA violations?**
 
-There is a positive statistically significant relationship between percent poverty and the number of violations.
+There is a positive statistically significant relationship (positive association) between percent poverty and the number of violations.
 
 ## Making predictions
 
@@ -167,3 +168,77 @@ Once you have a model, you can make predictions using `predict()`. When calling 
 -   `se.fit` If `se.fit` is `TRUE`, `predict()` will calculate the confidence interval of the response on the link scale. You can use that to get the confidence interval of . That will make a ribbon, similar to the confidence interval of you saw in linear regression.
 
 Here’s how to generate predictions (with CI) for a single predictor.
+
+```{r}
+#| label: predict-class-model
+# A grid of predictor(s) to generate predictions for 
+pred_grid <- expand_grid(pctpov = 0:100)
+
+# Generate predictions 
+class_pred_grid <- pred_grid %>% 
+  mutate(p = predict(object = class_model, 
+                     newdata = pred_grid, 
+                     type = "response")) # p, link will look at logit(p)
+
+class_pred_grid
+```
+
+```{r}
+#| label: plot-class-best-estimate
+
+# p is the value of the line (curve)
+class_pred_grid %>% ggplot(aes(pctpov, p)) + geom_line() + labs(title = "Predicted Class Model") + ylim(0,1) + 
+  theme_bw()
+```
+
+```{r}
+#| label: predict-class-model-link
+# Calculations to get logit p and then undo with inverse function
+
+# A grid of predictor(s) to generate predictions for 
+pred_grid <- expand_grid(pctpov = 0:100)
+class_model_se <-  predict(object = class_model, 
+                     newdata = pred_grid, 
+                     type = "link", # p, link will look at logit(p)
+                     se.fit = T) # Get SE out of fit
+
+# Go from link space to response space
+linkinv <- family(class_model)$linkinv # Get back to p from logit(p)
+
+class_model_predictions <- pred_grid %>% 
+  mutate(#get logit(p)
+    logit_p = class_model_se$fit, 
+         # 95% CI in link space
+    logit_p_se = class_model_se$se.fit, 
+    logit_p_lwr = qnorm(.025, mean = logit_p, sd = logit_p_se), 
+    logit_p_upper = qnorm(.975, mean = logit_p, sd = logit_p_se), 
+    # undo link function using linkv
+    p = linkinv(logit_p),
+    p_lwr = linkinv(logit_p_lwr), 
+    p_upper = linkinv(logit_p_upper))
+
+
+head(class_model_predictions)
+
+```
+
+```{r}
+#| label: class-model-link-predictions-plot
+
+ggplot(class_model_predictions, aes(x = pctpov, y = p)) + 
+  geom_ribbon(aes(ymin = p_lwr, ymax = p_upper), alpha= .2) +
+  geom_line() + theme_bw()
+
+```
+
+And here’s the fit with the 95% CI presented as the familiar ribbon.
+
+```{r}
+## se.fit:logit(p) is linear with x predictor, apply inverse (logit^-1) to get p as y value (curve) against predictor
+
+
+
+
+```
+
+**What is the probability of a SDWA violation in a district where 5% of households are below the poverty line? When 50% are? Show the best estimate and 95% CI.**
