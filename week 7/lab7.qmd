@@ -47,22 +47,22 @@ logistic_model <- glm(binary_outcome ~ predictor,
 ```{r}
 drinking_water <- read_csv(here::here("data_copy","drinking_water.csv"))
 str(drinking_water)
-#unique(drinking_water$pwsname)
+unique(drinking_water$health)
 ```
 
 **Describe what you think each of the columns represents.**
 
-| Column              | Meaning                                             |
-|---------------------|-----------------------------------------------------|
-| `pwsid`             | ID for each water drinking water source             |
-| `pwsname`           | Name of each drinking water source                  |
-| `pctpov`            | Percent poverty                                     |
-| `pcthisp`           | Percent Hispanic population                         |
-| `health`            | Binary variable indicating "safe" or "unsafe"       |
-| `medianincomehouse` | Median income of households                         |
-| `violation`         | Boolean of whether a drinking site is "safe" or not |
-| `pcthisp_bin`       | Binned percentiles for % Hispanic                   |
-| `pctpov_bin`        | Binned percentiles for % poverty                    |
+| Column | Meaning |
+|------------------------|------------------------------------------------|
+| `pwsid` | ID for each water drinking water source |
+| `pwsname` | Name of each drinking water source |
+| `pctpov` | Percent poverty |
+| `pcthisp` | Percent Hispanic population |
+| `health` | Number of health violations |
+| `medianincomehouse` | Median income of households |
+| `violation` | Binary (Boolean) of whether a drinking site is "safe" or not |
+| `pcthisp_bin` | Binned percentiles for % Hispanic |
+| `pctpov_bin` | Binned percentiles for % poverty |
 
 **Create three figures summarizing the relationships between race, class, and SDWA violations.**
 
@@ -107,8 +107,8 @@ Figure 3: A scatter plot showing the correlation between *percent Hispanic* and 
 ```{r}
 drinking_water %>% 
 ggplot(aes(x = pcthisp, y = pctpov)) +
-  geom_point(alpha = 0.4, col = "lightblue") +
-  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  geom_point(alpha = 0.2, col = "lightblue") +
+ # geom_smooth(method = "lm", color = "red", se = FALSE) +
   labs(
     x = "Percent Hispanic",
     y = "Percent Below Poverty",
@@ -116,3 +116,54 @@ ggplot(aes(x = pcthisp, y = pctpov)) +
   ) +
   theme_minimal()
 ```
+
+## Fit and interpret model
+
+Our question is:
+
+*How are SDWA violations distributed among communities by class and race?*
+
+Let’s begin by investigating class in isolation. **Fit a logistic model to see how `violation` responds to `pctpov`**.
+
+```{r}
+class_model <- glm(violation~pctpov, # formula: response ~ predictors
+                   data = drinking_water, 
+                   family = binomial(link = "logit")) # Set family response
+
+summary(class_model)
+confint(class_model)
+```
+
+Just as we did with linear regression, you can inspect coefficient estimates, p-values, and confidence intervals using `summary()` and `confint()`.
+
+**What is the best estimate for the % Below Poverty coefficient?**
+
+The best estimate for % below poverty coefficient is about 0.016980.
+
+**Is the coefficient significantly different than 0? Assume critical threshold of 0.05.**
+
+The coefficient is significantly different from 0 (p\<.05).
+
+**What is the 95% CI for the coefficient?**
+
+We are 95% confident that that the true population coefficient of percent poverty for the number of violations at different sources of drinking water falls between 0.014 and 0.02.
+
+**Based on the sign, what is the relationship between class and SDWA violations?**
+
+There is a positive statistically significant relationship between percent poverty and the number of violations.
+
+## Making predictions
+
+Interpreting the coefficients directly is pretty difficult with logistic regression! What is the difference between a coefficient of 0.1 and 0.2? Rather than interpreting the coefficient directly, it’s often easier to compare predictions.
+
+Once you have a model, you can make predictions using `predict()`. When calling `predict()`, the following parameters are important:
+
+-   `object` The model you want to generate predictions from
+
+-   `newdata` A data frame of predictors your want predictions for
+
+-   `type` Do you want predictions on the *link* or *response* scale? By default, `predict()` shows the value of (i.e., link-scale). To get the predicted *probability* (i.e., response-scale) set `type` to “response”.
+
+-   `se.fit` If `se.fit` is `TRUE`, `predict()` will calculate the confidence interval of the response on the link scale. You can use that to get the confidence interval of . That will make a ribbon, similar to the confidence interval of you saw in linear regression.
+
+Here’s how to generate predictions (with CI) for a single predictor.
