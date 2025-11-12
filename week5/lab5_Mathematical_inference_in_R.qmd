@@ -167,6 +167,8 @@ The following questions walk you through the steps.
 
 **Q7: What is the appropriate test statistic for this question?**
 
+Difference in proportions
+
 #### **Calculate the standard error**
 
 **Q8: Fill in the blanks below to calculate the standard error of the statistic**
@@ -174,15 +176,47 @@ The following questions walk you through the steps.
 ```{r}
 # Calculate the proportions of the two treatments
 # Let treatment 1 be "Garden staple"
-p_hat1 <- ???
+p_hat1 <- mean(restoration$success[restoration$treatment == "Garden staple"])
 # Let treatment 2 be "Popsicle stick"
-p_hat2 <- ???
+p_hat2 <- mean(restoration$success[restoration$treatment == "Popsicle stick"])
 
 # n1 and n2 remain the same from before
 
 # Calculate standard error
-se_diff_props <- ???
+se_diff_props <- sqrt(p_hat1 * (1 - p_hat1) / n1 + p_hat2 * (1 - p_hat2) / n2)
 se_diff_props
 ```
 
 If you calculated `se_diff_props` correctly, the following figure should depict the PDF of the sampling distribution. It should be a normal variable with mean equal to the observed statistic in the sample and standard deviation equal to the standard error.
+
+## Constructing the Confidence Interval
+
+**Q9: Fill in the blanks to use** `qnorm()` **in constructing the confidence interval.**
+
+```{r}
+# USe qnorm() for calculating the range the 95% confidence interval 
+ci <- qnorm(c(0.025, 0.975), mean = diff_props, sd = se_diff_props)
+ci
+```
+
+**Q10: How would you interpret this confidence interval**
+
+We are 95% confident that the true difference in proportions (population parameter) between the two treatments is about -.0569 and .3396.
+
+## Additional Questions
+
+**Q11: What are permutation tests and mathematical models [both]{.underline} trying to estimate for hypothesis tests?**
+
+Both are trying to estimate the sampling distribution of the test statistic assuming the null hypothesis is true.
+
+**Q12: What are bootstrapping and mathematical models [both]{.underline} trying to estimate for confidence intervals?**
+
+For confidence intervals, both methods try to estimate the approximate interval that captures the true population parameter about 95% of the time assuming we have sufficient evidence to disprove the null hypothesis (there is a difference).
+
+**Q13: What area under the curve is relevant to hypothesis tests? What R function calculates it for a mathematical model?**
+
+The area under the curve corresponding to the relevance of the hypothesis tests are towards the right of the test statistic. pnorm() is used to calculate the p-value.
+
+**Q14: What area under the curve is relevant to confidence intervals? What R function calculates it for a mathematical model?**
+
+The area under the curve relevant to confidence intervals are the bounds left and right of .025 and .97 for the 95% confidence interval (qnorm()).

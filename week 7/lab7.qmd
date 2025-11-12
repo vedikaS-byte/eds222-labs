@@ -1,0 +1,118 @@
+---
+title: "Lab 7: The Color of Drinking Water"
+format: html
+---
+
+# Lab 7: The Color of Drinking Water
+
+In today’s lab you will…
+
+-   Fit logistic regression models to binary (0/1, no/yes) outcomes
+-   Interpret coefficients
+-   Visualize predictions
+
+Complete sections Logistic model notation and R code and Read and explore the data before class.
+
+```{r}
+#| output: false
+library(tidyverse)
+theme_set(theme_classic(12))
+set.seed(123)
+```
+
+## Logistic model notation and R code
+
+In statistical notation, logistic models take the form:
+
+![](images/clipboard-2827239717.png)
+
+**In both the notation and code above, identify the:**
+
+-   **Response family:** Binomial
+
+-   **Link function:** logit()
+
+-   **Response:** BinaryOutcome
+
+-   **Predictor:** Probability of favored outcome?
+
+```{r}
+logistic_model <- glm(binary_outcome ~ predictor,
+                      data = my_data,
+                      family = binomial(link = "logit"))
+```
+
+## **Read and explore the data**
+
+```{r}
+drinking_water <- read_csv(here::here("data_copy","drinking_water.csv"))
+str(drinking_water)
+#unique(drinking_water$pwsname)
+```
+
+**Describe what you think each of the columns represents.**
+
+| Column              | Meaning                                             |
+|---------------------|-----------------------------------------------------|
+| `pwsid`             | ID for each water drinking water source             |
+| `pwsname`           | Name of each drinking water source                  |
+| `pctpov`            | Percent poverty                                     |
+| `pcthisp`           | Percent Hispanic population                         |
+| `health`            | Binary variable indicating "safe" or "unsafe"       |
+| `medianincomehouse` | Median income of households                         |
+| `violation`         | Boolean of whether a drinking site is "safe" or not |
+| `pcthisp_bin`       | Binned percentiles for % Hispanic                   |
+| `pctpov_bin`        | Binned percentiles for % poverty                    |
+
+**Create three figures summarizing the relationships between race, class, and SDWA violations.**
+
+Figure 1: A scatter plot showing the *proportion* of districts with SDWA violations in each *percent Hispanic bin*.
+
+```{r}
+drinking_water %>%
+  group_by(pcthisp_bin) %>%
+  summarise(prop_violation = mean(violation, na.rm = TRUE)) %>%
+ggplot(aes(x = pcthisp_bin, y = prop_violation)) +
+  geom_point(color = "darkblue") +
+  geom_line(group = 1, color = "darkblue") +
+  labs(
+    x = "Binned Percent Hispanic",
+    y = "Proportion with SDWA Violations",
+    title = "Proportion of Districts with SDWA Violations by % Hispanic Bin"
+  ) +
+  theme_minimal()
+
+```
+
+Figure 2: A scatter plot showing the *proportion* of districts with SDWA violations in each *percent below-poverty bin*.
+
+```{r}
+drinking_water %>%
+  group_by(pctpov_bin) %>%
+  summarise(prop_violation = mean(violation, na.rm = TRUE)) %>%
+ggplot(aes(x = pctpov_bin, y = prop_violation)) +
+  geom_point(color = "darkred") +
+  geom_line(group = 1, color = "darkred") +
+  labs(
+    x = "Percent Below Poverty (binned)",
+    y = "Proportion with SDWA Violations",
+    title = "Proportion of Districts with SDWA Violations by % Below Poverty Bin"
+  ) +
+  theme_minimal()
+
+```
+
+Figure 3: A scatter plot showing the correlation between *percent Hispanic* and *percent below-poverty* at the district level.
+
+```{r}
+drinking_water %>% 
+ggplot(aes(x = pcthisp, y = pctpov)) +
+  geom_point(alpha = 0.4, col = "lightblue") +
+  geom_smooth(method = "lm", color = "red", se = FALSE) +
+  labs(
+    x = "Percent Hispanic",
+    y = "Percent Below Poverty",
+    title = "Relationship Between % Hispanic and % Below Poverty at the \nDistrict Level"
+  ) +
+  theme_minimal()
+```
