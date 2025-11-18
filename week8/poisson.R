@@ -9,6 +9,7 @@ pmfb_poisson <- expand.grid(trials = x,
                             lambda = lambda) %>% 
   mutate(prob = dpois(trials, lambda))
 
+?geom_segment # Draw straight line between points (x,y) to xend and yend
 
 pmfb_poisson %>% ggplot(aes(x = trials, y = prob)) +
   geom_point(shape = 21, fill = "white", color = "black") +
@@ -20,3 +21,9 @@ pmfb_poisson %>% ggplot(aes(x = trials, y = prob)) +
     y = "Mass"
   ) +
   theme_bw() 
+
+
+
+
+
+
